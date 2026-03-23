@@ -113,6 +113,13 @@ export interface SearchResult {
   createdAt: string;
 }
 
+export interface SearchResultApiResponse {
+  content: string;
+  category: string;
+  score: number;
+  created_at: string;
+}
+
 // --- File tracking ---
 
 export interface FileTrackingEntry {

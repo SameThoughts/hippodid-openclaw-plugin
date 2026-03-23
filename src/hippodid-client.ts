@@ -10,6 +10,7 @@ import type {
   SyncStatusEntry,
   SyncStatusResponse,
   SearchResult,
+  SearchResultApiResponse,
 } from './types.js';
 import { ok, err } from './types.js';
 
@@ -247,10 +248,23 @@ export function createClient(apiKey: string, baseUrl: string): HippoDidClient {
       query: string,
       topK?: number,
     ): Promise<Result<SearchResult[]>> {
-      return request<SearchResult[]>(
+      const result = await request<SearchResultApiResponse[]>(
         'POST',
         `/v1/characters/${encodeURIComponent(characterId)}/search`,
         { query, top_k: topK ?? 5 },
+      );
+
+      if (!result.ok) return result;
+
+      return ok(
+        result.value.map(
+          (r): SearchResult => ({
+            content: r.content,
+            category: r.category,
+            score: r.score,
+            createdAt: r.created_at,
+          }),
+        ),
       );
     },
 

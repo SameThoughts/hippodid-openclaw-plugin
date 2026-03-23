@@ -247,7 +247,7 @@ describe('HippoDidClient', () => {
         {
           status: 200,
           body: [
-            { content: 'Prefers dark mode', category: 'Preferences', score: 0.9, createdAt: '2026-03-01' },
+            { content: 'Prefers dark mode', category: 'Preferences', score: 0.9, created_at: '2026-03-01' },
           ],
         },
       ]);
@@ -260,6 +260,7 @@ describe('HippoDidClient', () => {
       if (result.ok) {
         expect(result.value).toHaveLength(1);
         expect(result.value[0].content).toBe('Prefers dark mode');
+        expect(result.value[0].createdAt).toBe('2026-03-01');
       }
 
       const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);

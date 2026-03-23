@@ -26,7 +26,8 @@ export default function register(api: OpenClawPluginAPI): void {
     const client = createClient(config.apiKey, config.baseUrl);
     const tierManager = createTierManager(client, config.characterId, logger);
     const watchPaths = resolveWatchPaths(config);
-    const fileSync = createFileSync(client, config, watchPaths, logger);
+    const effectiveSyncInterval = Math.max(config.syncIntervalSeconds, 60);
+    const fileSync = createFileSync(client, config, watchPaths, logger, effectiveSyncInterval);
 
     const registerMemoryFlush = createMemoryFlushHook(fileSync, logger);
     registerMemoryFlush(api);
@@ -52,14 +53,6 @@ export default function register(api: OpenClawPluginAPI): void {
 
       if (tierManager.shouldMountFileSync(config.autoCapture)) {
         fileSync.start();
-      }
-
-      if (tierManager.shouldHydrateOnStart(config.autoRecall)) {
-        fileSync.hydrateFromCloud().catch((e) => {
-          logger.warn(
-            `hippodid: initial hydration failed: ${e instanceof Error ? e.message : 'unknown'}`,
-          );
-        });
       }
 
       const autoRecallStatus = tierManager.shouldMountAutoRecall(config.autoRecall)

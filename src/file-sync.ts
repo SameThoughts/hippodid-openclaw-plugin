@@ -22,7 +22,9 @@ export function createFileSync(
   config: PluginConfig,
   watchPaths: WatchPath[],
   logger: Logger,
+  effectiveSyncIntervalSeconds?: number,
 ): FileSync {
+  const syncIntervalMs = (effectiveSyncIntervalSeconds ?? config.syncIntervalSeconds) * 1000;
   const tracking = new Map<string, FileTrackingEntry>();
   const watchers: FSWatcher[] = [];
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -141,7 +143,7 @@ export function createFileSync(
           );
         });
       },
-      config.syncIntervalSeconds * 1000,
+      syncIntervalMs,
     );
   }
 
@@ -166,6 +168,11 @@ export function createFileSync(
             } else if (wp.path.endsWith('.md')) {
               onFileChange(resolve(wp.path));
             }
+          });
+          watcher.on('error', (err) => {
+            logger.warn(
+              `hippodid: watcher error for ${wp.path}: ${err instanceof Error ? err.message : 'unknown'}`,
+            );
           });
           watchers.push(watcher);
         } catch (e) {

@@ -25,3 +25,5 @@ yarn-error.log*
 
 # jiti cache
 /tmp/jiti/
+
+.idea/
