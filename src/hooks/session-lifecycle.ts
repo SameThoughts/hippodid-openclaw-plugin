@@ -9,7 +9,7 @@ export function createSessionHooks(
   logger: { info(msg: string): void; warn(msg: string): void },
 ): (api: OpenClawPluginAPI) => void {
   return (api: OpenClawPluginAPI) => {
-    api.hooks.on('session:start', async () => {
+    api.on('session:start', async () => {
       try {
         await tierManager.initialize();
 
@@ -26,7 +26,7 @@ export function createSessionHooks(
       }
     });
 
-    api.hooks.on('session:end', async () => {
+    api.on('session:end', async () => {
       try {
         const { synced, changed } = await fileSync.flushNow();
         logger.info(

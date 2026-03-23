@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import type { OpenClawPluginAPI, PluginConfig } from './types.js';
+import type { OpenClawPluginAPI, PluginConfig, WatchPathConfig } from './types.js';
 import { createClient, type HippoDidClient } from './hippodid-client.js';
 import { createFileSync, type FileSync } from './file-sync.js';
 import { resolveWatchPaths } from './workspace-detector.js';
@@ -10,74 +10,146 @@ import { createSessionHooks } from './hooks/session-lifecycle.js';
 import { createAutoRecallHook } from './hooks/auto-recall.js';
 import { createAutoCaptureHook } from './hooks/auto-capture.js';
 
-export const id = 'hippodid';
-
 const VERSION = '1.0.0';
 
-export default function register(api: OpenClawPluginAPI): void {
-  try {
-    const config = resolveConfig(api.config);
-    const logger = api.logger ?? {
-      info: (msg: string) => console.log(msg),
-      warn: (msg: string) => console.warn(msg),
-      error: (msg: string) => console.error(msg),
-    };
+const plugin = {
+  id: 'hippodid',
+  name: 'HippoDid Memory',
+  description:
+    'Persistent cloud memory for OpenClaw — survives context compaction',
 
-    const client = createClient(config.apiKey, config.baseUrl);
-    const tierManager = createTierManager(client, config.characterId, logger);
-    const watchPaths = resolveWatchPaths(config);
-    const effectiveSyncInterval = Math.max(config.syncIntervalSeconds, 60);
-    const fileSync = createFileSync(client, config, watchPaths, logger, effectiveSyncInterval);
+  configSchema: {
+    type: 'object' as const,
+    required: ['apiKey', 'characterId'],
+    additionalProperties: false,
+    properties: {
+      apiKey: { type: 'string' as const },
+      characterId: { type: 'string' as const },
+      baseUrl: {
+        type: 'string' as const,
+        default: 'https://api.hippodid.com',
+      },
+      syncIntervalSeconds: {
+        type: 'number' as const,
+        default: 300,
+        minimum: 60,
+      },
+      autoRecall: { type: 'boolean' as const, default: false },
+      autoCapture: { type: 'boolean' as const, default: false },
+      additionalPaths: {
+        type: 'array' as const,
+        items: {
+          type: 'object' as const,
+          properties: {
+            path: { type: 'string' as const },
+            label: { type: 'string' as const },
+          },
+          required: ['path'],
+        },
+        default: [],
+      },
+    },
+  },
 
-    const registerMemoryFlush = createMemoryFlushHook(fileSync, logger);
-    registerMemoryFlush(api);
+  register(api: OpenClawPluginAPI): void {
+    try {
+      const config = resolveConfig(api.config);
+      const logger = api.logger ?? {
+        info: (msg: string) => console.log(msg),
+        warn: (msg: string) => console.warn(msg),
+        error: (msg: string) => console.error(msg),
+      };
 
-    const registerSessionHooks = createSessionHooks(
-      fileSync,
-      tierManager,
-      config.autoRecall,
-      logger,
-    );
-    registerSessionHooks(api);
-
-    tierManager.initialize().then((tier) => {
-      if (tierManager.shouldMountAutoRecall(config.autoRecall)) {
-        const registerAutoRecall = createAutoRecallHook(client, config, logger);
-        registerAutoRecall(api);
-      }
-
-      if (tierManager.shouldMountAutoCapture(config.autoCapture)) {
-        const registerAutoCapture = createAutoCaptureHook(client, config, logger);
-        registerAutoCapture(api);
-      }
-
-      if (tierManager.shouldMountFileSync(config.autoCapture)) {
-        fileSync.start();
-      }
-
-      const autoRecallStatus = tierManager.shouldMountAutoRecall(config.autoRecall)
-        ? 'ON'
-        : 'OFF';
-      const autoCaptureStatus = tierManager.shouldMountAutoCapture(config.autoCapture)
-        ? 'ON'
-        : 'OFF';
-
-      logger.info(
-        `hippodid: v${VERSION} | character: ${config.characterId} | tier: ${tier.tier} | watching ${watchPaths.length} paths | autoRecall: ${autoRecallStatus} | autoCapture: ${autoCaptureStatus}`,
+      const client = createClient(config.apiKey, config.baseUrl);
+      const tierManager = createTierManager(
+        client,
+        config.characterId,
+        logger,
       );
-    }).catch((e) => {
-      logger.warn(
-        `hippodid: tier initialization failed, running in free mode: ${e instanceof Error ? e.message : 'unknown'}`,
+      const watchPaths = resolveWatchPaths(config);
+      const effectiveSyncInterval = Math.max(
+        config.syncIntervalSeconds,
+        60,
       );
-      fileSync.start();
-    });
+      const fileSync = createFileSync(
+        client,
+        config,
+        watchPaths,
+        logger,
+        effectiveSyncInterval,
+      );
 
-    registerCommands(api, config, client, fileSync, tierManager, logger);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : 'unknown';
-    (api.logger ?? console).error(`hippodid: plugin initialization failed: ${msg}`);
-  }
-}
+      logger.info('hippodid: plugin loaded');
+
+      const registerMemoryFlush = createMemoryFlushHook(fileSync, logger);
+      registerMemoryFlush(api);
+
+      const registerSessionHooks = createSessionHooks(
+        fileSync,
+        tierManager,
+        config.autoRecall,
+        logger,
+      );
+      registerSessionHooks(api);
+
+      tierManager
+        .initialize()
+        .then((tier) => {
+          if (tierManager.shouldMountAutoRecall(config.autoRecall)) {
+            const registerAutoRecall = createAutoRecallHook(
+              client,
+              config,
+              logger,
+            );
+            registerAutoRecall(api);
+          }
+
+          if (tierManager.shouldMountAutoCapture(config.autoCapture)) {
+            const registerAutoCapture = createAutoCaptureHook(
+              client,
+              config,
+              logger,
+            );
+            registerAutoCapture(api);
+          }
+
+          if (tierManager.shouldMountFileSync(config.autoCapture)) {
+            fileSync.start();
+          }
+
+          const autoRecallStatus = tierManager.shouldMountAutoRecall(
+            config.autoRecall,
+          )
+            ? 'ON'
+            : 'OFF';
+          const autoCaptureStatus = tierManager.shouldMountAutoCapture(
+            config.autoCapture,
+          )
+            ? 'ON'
+            : 'OFF';
+
+          logger.info(
+            `hippodid: v${VERSION} | character: ${config.characterId} | tier: ${tier.tier} | watching ${watchPaths.length} paths | autoRecall: ${autoRecallStatus} | autoCapture: ${autoCaptureStatus}`,
+          );
+        })
+        .catch((e) => {
+          logger.warn(
+            `hippodid: tier initialization failed, running in free mode: ${e instanceof Error ? e.message : 'unknown'}`,
+          );
+          fileSync.start();
+        });
+
+      registerCommands(api, config, client, fileSync, tierManager, logger);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'unknown';
+      (api.logger ?? console).error(
+        `hippodid: plugin initialization failed: ${msg}`,
+      );
+    }
+  },
+};
+
+export default plugin;
 
 function resolveConfig(raw: PluginConfig): PluginConfig {
   return {
@@ -123,7 +195,9 @@ function registerCommands(
           );
         }
       } else {
-        logger.warn(`Could not fetch sync status: ${statusResult.error.message}`);
+        logger.warn(
+          `Could not fetch sync status: ${statusResult.error.message}`,
+        );
       }
     },
   });

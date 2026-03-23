@@ -7,7 +7,7 @@ export function createAutoCaptureHook(
   logger: { info(msg: string): void; warn(msg: string): void },
 ): (api: OpenClawPluginAPI) => void {
   return (api: OpenClawPluginAPI) => {
-    api.hooks.on('agent_end', (...args: unknown[]) => {
+    api.on('agent_end', (...args: unknown[]) => {
       try {
         const exchange = extractExchange(args);
         if (!exchange) return;
