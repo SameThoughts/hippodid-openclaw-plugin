@@ -18,7 +18,8 @@
   ],
   "main": "src/index.ts",
   "files": [
-    "src/",
+    "dist",
+    "src",
     "openclaw.plugin.json",
     "LICENSE",
     "README.md"
@@ -34,5 +35,10 @@
     "@vitest/coverage-v8": "^3.2.4",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ]
   }
 }
