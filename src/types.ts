@@ -127,7 +127,7 @@ export interface FileTrackingEntry {
   lastSyncedAt: Date;
 }
 
-// --- OpenClaw Plugin API (local type, based on plan assumptions) ---
+// --- OpenClaw Plugin API (local type, matches openclaw/plugin-sdk/core) ---
 
 export interface OpenClawPluginAPI {
   config: PluginConfig;
@@ -136,9 +136,7 @@ export interface OpenClawPluginAPI {
     warn(message: string): void;
     error(message: string): void;
   };
-  hooks: {
-    on(event: string, handler: (...args: any[]) => void | Promise<void>): void;
-  };
+  on(event: string, handler: (...args: any[]) => void | Promise<void>): void;
   context: {
     prepend(content: string): void;
   };

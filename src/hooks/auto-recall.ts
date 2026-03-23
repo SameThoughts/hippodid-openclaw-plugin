@@ -7,7 +7,7 @@ export function createAutoRecallHook(
   logger: { info(msg: string): void; warn(msg: string): void },
 ): (api: OpenClawPluginAPI) => void {
   return (api: OpenClawPluginAPI) => {
-    api.hooks.on('before_agent_start', async (...args: unknown[]) => {
+    api.on('before_agent_start', async (...args: unknown[]) => {
       try {
         const userMessage = extractUserMessage(args);
         if (!userMessage) return;

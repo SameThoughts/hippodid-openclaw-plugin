@@ -6,7 +6,7 @@ export function createMemoryFlushHook(
   logger: { info(msg: string): void; warn(msg: string): void },
 ): (api: OpenClawPluginAPI) => void {
   return (api: OpenClawPluginAPI) => {
-    api.hooks.on('memoryFlush', async () => {
+    api.on('memoryFlush', async () => {
       try {
         const { synced, changed } = await fileSync.flushNow();
         logger.info(

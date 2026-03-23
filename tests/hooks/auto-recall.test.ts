@@ -26,11 +26,9 @@ function mockApi(): OpenClawPluginAPI & { _hooks: Record<string, Function[]> } {
     _hooks: hooks,
     config: {} as any,
     logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-    hooks: {
-      on: (event: string, handler: Function) => {
-        if (!hooks[event]) hooks[event] = [];
-        hooks[event].push(handler);
-      },
+    on: (event: string, handler: Function) => {
+      if (!hooks[event]) hooks[event] = [];
+      hooks[event].push(handler);
     },
     context: { prepend: vi.fn() },
     commands: { register: vi.fn() },
