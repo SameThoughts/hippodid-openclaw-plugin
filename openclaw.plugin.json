@@ -1,0 +1,57 @@
+{
+  "id": "hippodid",
+  "name": "HippoDid — Cloud Character Memory",
+  "description": "Cloud sync for MEMORY.md with structured character memory. Survives context compaction.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "apiKey": {
+        "type": "string",
+        "description": "HippoDid API key (hd_sk_...)"
+      },
+      "characterId": {
+        "type": "string",
+        "description": "Target character ID or name"
+      },
+      "baseUrl": {
+        "type": "string",
+        "default": "https://api.hippodid.com"
+      },
+      "syncIntervalSeconds": {
+        "type": "number",
+        "default": 300,
+        "minimum": 60
+      },
+      "autoRecall": {
+        "type": "boolean",
+        "default": false
+      },
+      "autoCapture": {
+        "type": "boolean",
+        "default": false
+      },
+      "additionalPaths": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "path": { "type": "string" },
+            "label": { "type": "string" }
+          },
+          "required": ["path"]
+        },
+        "default": []
+      }
+    },
+    "required": ["apiKey", "characterId"]
+  },
+  "uiHints": {
+    "apiKey": { "label": "HippoDid API Key", "sensitive": true, "placeholder": "hd_sk_..." },
+    "characterId": { "label": "Character ID", "placeholder": "my-dev-agent" },
+    "baseUrl": { "label": "API Base URL", "advanced": true },
+    "syncIntervalSeconds": { "label": "Sync Interval (seconds)", "advanced": true },
+    "autoRecall": { "label": "Auto-Recall (Paid tier)", "help": "Inject relevant memories before each turn" },
+    "autoCapture": { "label": "Auto-Capture (Paid tier)", "help": "Extract and store facts after each turn" }
+  }
+}
