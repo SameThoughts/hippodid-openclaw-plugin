@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import type { OpenClawPluginAPI, PluginConfig, WatchPathConfig } from './types.js';
+import type { PluginConfig } from './types.js';
 import { createClient, type HippoDidClient } from './hippodid-client.js';
 import { createFileSync, type FileSync } from './file-sync.js';
 import { resolveWatchPaths } from './workspace-detector.js';
@@ -12,46 +12,10 @@ import { createAutoCaptureHook } from './hooks/auto-capture.js';
 
 const VERSION = '1.0.0';
 
-const plugin = {
+export default {
   id: 'hippodid',
-  name: 'HippoDid Memory',
-  description:
-    'Persistent cloud memory for OpenClaw — survives context compaction',
 
-  configSchema: {
-    type: 'object' as const,
-    required: ['apiKey', 'characterId'],
-    additionalProperties: false,
-    properties: {
-      apiKey: { type: 'string' as const },
-      characterId: { type: 'string' as const },
-      baseUrl: {
-        type: 'string' as const,
-        default: 'https://api.hippodid.com',
-      },
-      syncIntervalSeconds: {
-        type: 'number' as const,
-        default: 300,
-        minimum: 60,
-      },
-      autoRecall: { type: 'boolean' as const, default: false },
-      autoCapture: { type: 'boolean' as const, default: false },
-      additionalPaths: {
-        type: 'array' as const,
-        items: {
-          type: 'object' as const,
-          properties: {
-            path: { type: 'string' as const },
-            label: { type: 'string' as const },
-          },
-          required: ['path'],
-        },
-        default: [],
-      },
-    },
-  },
-
-  register(api: OpenClawPluginAPI): void {
+  register(api: any): void {
     try {
       const config = resolveConfig(api.config);
       const logger = api.logger ?? {
@@ -79,7 +43,7 @@ const plugin = {
         effectiveSyncInterval,
       );
 
-      logger.info('hippodid: plugin loaded');
+      logger.info(`HippoDid loaded — character: ${config.characterId}`);
 
       const registerMemoryFlush = createMemoryFlushHook(fileSync, logger);
       registerMemoryFlush(api);
@@ -149,9 +113,7 @@ const plugin = {
   },
 };
 
-export default plugin;
-
-function resolveConfig(raw: PluginConfig): PluginConfig {
+function resolveConfig(raw: any): PluginConfig {
   return {
     apiKey: raw.apiKey,
     characterId: raw.characterId,
@@ -164,7 +126,7 @@ function resolveConfig(raw: PluginConfig): PluginConfig {
 }
 
 function registerCommands(
-  api: OpenClawPluginAPI,
+  api: any,
   config: PluginConfig,
   client: HippoDidClient,
   fileSync: FileSync,
