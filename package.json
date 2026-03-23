@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hippodid/hippodid-openclaw-plugin"
+    "url": "git+https://github.com/SameThoughts/hippodid-openclaw-plugin.git"
   },
   "keywords": [
     "openclaw",
