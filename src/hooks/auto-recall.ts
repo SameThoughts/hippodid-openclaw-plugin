@@ -7,30 +7,28 @@ export function createAutoRecallHook(
   logger: { info(msg: string): void; warn(msg: string): void },
 ): (api: any) => void {
   return (api: any) => {
-    // OpenClaw 2026 does not support api.on() for pre-response hooks.
-    // Register a recall tool that agents invoke when they need memory context.
-    api.registerTool('hippodid:recall', {
-      description: 'Search HippoDid character memory and return relevant context. Call this at the start of a task to recall relevant memories.',
-      args: [
-        {
-          name: 'query',
-          description: 'What to search for in memory',
-          required: true,
-        },
-      ],
-      handler: async (args: Record<string, string>) => {
-        const query = args['query'] ?? '';
-        const result = await client.searchMemories(config.characterId, query);
-        if (result.ok) {
-          const memories = result.value;
-          logger.info(`hippodid: recalled ${memories.length} memories for query: ${query}`);
-          return memories.map((m) => m.content).join('\n\n');
-        } else {
-          logger.warn(`hippodid: recall failed: ${result.error.message}`);
-          return 'No memories found.';
+    api.registerHook(
+      'before_agent_start',
+      async (ctx: any) => {
+        try {
+          const query = ctx?.prompt ?? ctx?.message ?? ctx?.input ?? '';
+          if (!query) return;
+
+          const result = await client.searchMemories(config.characterId, query);
+          if (result.ok && result.value?.length > 0) {
+            const memories = result.value
+              .map((m: any) => m.content ?? m.text ?? m.body ?? '')
+              .filter(Boolean)
+              .join('\n---\n');
+            ctx.prependContext?.(`## HippoDid Memories\n${memories}\n`);
+            logger.info(`hippodid: recalled ${result.value.length} memories`);
+          }
+        } catch (e) {
+          logger.warn(`hippodid: recall error: ${e instanceof Error ? e.message : String(e)}`);
         }
       },
-    });
-    logger.info('hippodid: auto-recall tool registered as hippodid:recall');
+      { name: 'hippodid.before-agent-start', description: 'Inject HippoDid memories before agent responds' },
+    );
+    logger.info('hippodid: auto-recall hook registered (before_agent_start)');
   };
 }
