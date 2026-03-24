@@ -30,61 +30,70 @@ const config: PluginConfig = {
 const logger = { info: vi.fn(), warn: vi.fn() };
 
 describe('AutoCaptureHook', () => {
-  it('registers hippodid:remember tool via api.registerTool', () => {
+  it('registers agent_end hook via api.registerHook', () => {
     const client = mockClient();
-    const api = { registerTool: vi.fn() };
+    const api = { registerHook: vi.fn(), registerTool: vi.fn() };
     const register = createAutoCaptureHook(client, config, logger);
     register(api);
 
-    expect(api.registerTool).toHaveBeenCalledWith(
-      'hippodid:remember',
-      expect.objectContaining({ description: expect.any(String) }),
+    expect(api.registerHook).toHaveBeenCalledWith(
+      'agent_end',
+      expect.any(Function),
+      expect.objectContaining({ name: 'hippodid.agent-end' }),
     );
     expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('hippodid:remember'),
+      expect.stringContaining('agent_end'),
     );
   });
 
-  it('remember tool handler stores content', async () => {
+  it('hook handler captures user + assistant exchange', async () => {
     const client = mockClient();
-    const api = { registerTool: vi.fn() };
+    const api = { registerHook: vi.fn(), registerTool: vi.fn() };
     const register = createAutoCaptureHook(client, config, logger);
     register(api);
 
-    const toolDef = api.registerTool.mock.calls[0][1];
-    const result = await toolDef.handler({ content: 'User likes TypeScript' });
+    const hookFn = api.registerHook.mock.calls[0][1];
+    await hookFn({
+      userMessage: 'What is TypeScript?',
+      assistantMessage: 'A typed superset of JavaScript.',
+    });
 
-    expect(client.addMemory).toHaveBeenCalledWith('char-1', 'User likes TypeScript');
-    expect(result).toBe('Remembered.');
+    expect(client.addMemory).toHaveBeenCalledWith(
+      'char-1',
+      expect.stringContaining('What is TypeScript?'),
+    );
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.stringContaining('captured conversation turn'),
+    );
   });
 
-  it('remember tool handler returns error on failure', async () => {
+  it('hook handler skips when no messages', async () => {
+    const client = mockClient();
+    const api = { registerHook: vi.fn(), registerTool: vi.fn() };
+    const register = createAutoCaptureHook(client, config, logger);
+    register(api);
+
+    const hookFn = api.registerHook.mock.calls[0][1];
+    await hookFn({});
+
+    expect(client.addMemory).not.toHaveBeenCalled();
+  });
+
+  it('hook handler handles addMemory failure gracefully', async () => {
     const client = mockClient();
     client.addMemory = vi.fn(async () => ({
       ok: false as const,
       error: { status: 500, message: 'Server error', retryable: true },
     }));
 
-    const api = { registerTool: vi.fn() };
+    const api = { registerHook: vi.fn(), registerTool: vi.fn() };
     const register = createAutoCaptureHook(client, config, logger);
     register(api);
 
-    const toolDef = api.registerTool.mock.calls[0][1];
-    const result = await toolDef.handler({ content: 'test' });
+    const hookFn = api.registerHook.mock.calls[0][1];
+    await hookFn({ userMessage: 'test', assistantMessage: 'response' });
 
-    expect(result).toContain('Failed to remember');
-  });
-
-  it('remember tool handler rejects empty content', async () => {
-    const client = mockClient();
-    const api = { registerTool: vi.fn() };
-    const register = createAutoCaptureHook(client, config, logger);
-    register(api);
-
-    const toolDef = api.registerTool.mock.calls[0][1];
-    const result = await toolDef.handler({ content: '' });
-
-    expect(result).toBe('Nothing to remember.');
-    expect(client.addMemory).not.toHaveBeenCalled();
+    // Should not throw — graceful degradation
+    expect(client.addMemory).toHaveBeenCalled();
   });
 });

@@ -2,6 +2,7 @@
   "id": "hippodid",
   "name": "HippoDid — Cloud Character Memory",
   "description": "Cloud sync for MEMORY.md with structured character memory. Survives context compaction.",
+  "skills": ["./skills"],
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
