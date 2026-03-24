@@ -133,7 +133,7 @@ function registerCommands(
   tierManager: TierManager,
   logger: { info(msg: string): void; warn(msg: string): void },
 ): void {
-  api.commands.register('hippodid:status', {
+  api.registerTool('hippodid:status', {
     description: 'Show HippoDid tier, sync status, and watched paths',
     handler: async () => {
       const tier = tierManager.getCurrentTier();
@@ -164,7 +164,7 @@ function registerCommands(
     },
   });
 
-  api.commands.register('hippodid:sync', {
+  api.registerTool('hippodid:sync', {
     description: 'Trigger immediate sync of all watched files',
     handler: async () => {
       logger.info('hippodid: manual sync triggered...');
@@ -175,7 +175,7 @@ function registerCommands(
     },
   });
 
-  api.commands.register('hippodid:import', {
+  api.registerTool('hippodid:import', {
     description: 'Import existing workspace memory into HippoDid character',
     args: [
       {
