@@ -157,35 +157,145 @@ function registerCommands(
   tierManager: TierManager,
   logger: { info(msg: string): void; warn(msg: string): void },
 ): void {
+  const getStatusText = async (): Promise<string> => {
+    const tier = tierManager.getCurrentTier();
+    const statusResult = await client.getSyncStatus(config.characterId);
+    const lines = [
+      'HippoDid status:',
+      `- Character: ${config.characterId}`,
+      `- Tier: ${tier.tier}`,
+      `- Auto-Recall: ${tier.features.autoRecallAvailable ? 'available' : 'unavailable'} (config: ${config.autoRecall ? 'ON' : 'OFF'})`,
+      `- Auto-Capture: ${tier.features.autoCaptureAvailable ? 'available' : 'unavailable'} (config: ${config.autoCapture ? 'ON' : 'OFF'})`,
+    ];
+
+    if (statusResult.ok) {
+      lines.push(`- Synced sources: ${statusResult.value.entries.length}`);
+      for (const entry of statusResult.value.entries) {
+        lines.push(
+          `  - ${entry.sourcePath} (${entry.label}) — last sync: ${entry.lastSyncedAt}`,
+        );
+      }
+    } else {
+      lines.push(
+        `- Sync status: unavailable (${statusResult.error.message})`,
+      );
+    }
+
+    return lines.join('\n');
+  };
+
+  const runImport = async (workspaceOverride?: string): Promise<string> => {
+    const { readdir } = await import('node:fs/promises');
+    const { join, extname } = await import('node:path');
+    const { createHash } = await import('node:crypto');
+
+    const workspacePath = workspaceOverride
+      ? resolve(workspaceOverride)
+      : resolve(process.cwd());
+
+    const memoryDir = join(workspacePath, 'memory');
+    const memoryMd = join(workspacePath, 'MEMORY.md');
+    const filesToImport: Array<{ path: string; label: string }> = [];
+
+    try {
+      const entries = await readdir(memoryDir);
+      for (const entry of entries) {
+        if (extname(entry) === '.md') {
+          filesToImport.push({
+            path: join(memoryDir, entry),
+            label: 'workspace-memory',
+          });
+        }
+      }
+    } catch {
+      // memory dir may not exist
+    }
+
+    try {
+      await readFile(memoryMd);
+      filesToImport.push({ path: memoryMd, label: 'MEMORY.md' });
+    } catch {
+      // MEMORY.md may not exist
+    }
+
+    if (filesToImport.length === 0) {
+      return 'hippodid: no memory files found to import';
+    }
+
+    logger.info(
+      `hippodid: importing ${filesToImport.length} files from ${workspacePath}...`,
+    );
+
+    let imported = 0;
+    for (const file of filesToImport) {
+      try {
+        const content = await readFile(file.path);
+        const hash = createHash('sha256').update(content).digest('hex');
+        const base64 = content.toString('base64');
+        const result = await client.syncFile(
+          config.characterId,
+          file.path,
+          file.label,
+          base64,
+          hash,
+        );
+        if (result.ok) imported++;
+      } catch (e) {
+        logger.warn(
+          `hippodid: import failed for ${file.path}: ${e instanceof Error ? e.message : 'unknown'}`,
+        );
+      }
+    }
+
+    return `hippodid: import complete — ${imported}/${filesToImport.length} files imported`;
+  };
+
+  api.registerCommand({
+    name: 'hippodid',
+    description: 'Show HippoDid status and run sync/import actions.',
+    acceptsArgs: true,
+    handler: async (ctx: any) => {
+      const args = ctx?.args?.trim() ?? '';
+      const [action = 'status', ...rest] = args.split(/\s+/).filter(Boolean);
+
+      if (action === 'status') {
+        return { text: await getStatusText() };
+      }
+
+      if (action === 'sync') {
+        logger.info('hippodid: manual sync triggered...');
+        const { synced, changed } = await fileSync.flushNow();
+        return {
+          text: `hippodid: manual sync complete — ${synced} files (${changed} changed)`,
+        };
+      }
+
+      if (action === 'import') {
+        const workspace = rest.join(' ').trim() || undefined;
+        return { text: await runImport(workspace) };
+      }
+
+      return {
+        text: [
+          'HippoDid commands:',
+          '',
+          '/hippodid status',
+          '/hippodid sync',
+          '/hippodid import [workspace-path]',
+        ].join('\n'),
+      };
+    },
+  });
+
   api.registerTool({
     name: 'hippodid:status',
     description: 'Show HippoDid tier, sync status, and watched paths',
     execute: async () => {
-      const tier = tierManager.getCurrentTier();
-      const statusResult = await client.getSyncStatus(config.characterId);
-
-      logger.info(`--- HippoDid Status ---`);
-      logger.info(`Character: ${config.characterId}`);
-      logger.info(`Tier: ${tier.tier}`);
-      logger.info(
-        `Auto-Recall: ${tier.features.autoRecallAvailable ? 'available' : 'unavailable'} (config: ${config.autoRecall ? 'ON' : 'OFF'})`,
-      );
-      logger.info(
-        `Auto-Capture: ${tier.features.autoCaptureAvailable ? 'available' : 'unavailable'} (config: ${config.autoCapture ? 'ON' : 'OFF'})`,
-      );
-
-      if (statusResult.ok) {
-        logger.info(`Synced sources: ${statusResult.value.entries.length}`);
-        for (const entry of statusResult.value.entries) {
-          logger.info(
-            `  ${entry.sourcePath} (${entry.label}) — last sync: ${entry.lastSyncedAt}`,
-          );
-        }
-      } else {
-        logger.warn(
-          `Could not fetch sync status: ${statusResult.error.message}`,
-        );
+      const text = await getStatusText();
+      for (const line of text.split('\n')) {
+        logger.info(line);
       }
+      return text;
     },
   });
 
@@ -195,9 +305,9 @@ function registerCommands(
     execute: async () => {
       logger.info('hippodid: manual sync triggered...');
       const { synced, changed } = await fileSync.flushNow();
-      logger.info(
-        `hippodid: manual sync complete — ${synced} files (${changed} changed)`,
-      );
+      const text = `hippodid: manual sync complete — ${synced} files (${changed} changed)`;
+      logger.info(text);
+      return text;
     },
   });
 
@@ -212,72 +322,9 @@ function registerCommands(
       },
     ],
     execute: async (args: Record<string, string>) => {
-      const { readdir } = await import('node:fs/promises');
-      const { join, extname } = await import('node:path');
-      const { createHash } = await import('node:crypto');
-
-      const workspacePath = args['workspace']
-        ? resolve(args['workspace'])
-        : resolve(process.cwd());
-
-      const memoryDir = join(workspacePath, 'memory');
-      const memoryMd = join(workspacePath, 'MEMORY.md');
-      const filesToImport: Array<{ path: string; label: string }> = [];
-
-      try {
-        const entries = await readdir(memoryDir);
-        for (const entry of entries) {
-          if (extname(entry) === '.md') {
-            filesToImport.push({
-              path: join(memoryDir, entry),
-              label: 'workspace-memory',
-            });
-          }
-        }
-      } catch {
-        // memory dir may not exist
-      }
-
-      try {
-        await readFile(memoryMd);
-        filesToImport.push({ path: memoryMd, label: 'MEMORY.md' });
-      } catch {
-        // MEMORY.md may not exist
-      }
-
-      if (filesToImport.length === 0) {
-        logger.info('hippodid: no memory files found to import');
-        return;
-      }
-
-      logger.info(
-        `hippodid: importing ${filesToImport.length} files from ${workspacePath}...`,
-      );
-
-      let imported = 0;
-      for (const file of filesToImport) {
-        try {
-          const content = await readFile(file.path);
-          const hash = createHash('sha256').update(content).digest('hex');
-          const base64 = content.toString('base64');
-          const result = await client.syncFile(
-            config.characterId,
-            file.path,
-            file.label,
-            base64,
-            hash,
-          );
-          if (result.ok) imported++;
-        } catch (e) {
-          logger.warn(
-            `hippodid: import failed for ${file.path}: ${e instanceof Error ? e.message : 'unknown'}`,
-          );
-        }
-      }
-
-      logger.info(
-        `hippodid: import complete — ${imported}/${filesToImport.length} files imported`,
-      );
+      const text = await runImport(args['workspace']);
+      logger.info(text);
+      return text;
     },
   });
 }

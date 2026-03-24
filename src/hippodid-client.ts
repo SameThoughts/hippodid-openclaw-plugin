@@ -136,9 +136,18 @@ export function createClient(apiKey: string, baseUrl: string): HippoDidClient {
     return {
       tier: raw.tier,
       features: {
-        autoRecallAvailable: raw.features.auto_recall_available,
-        autoCaptureAvailable: raw.features.auto_capture_available,
-        minSyncIntervalSeconds: raw.features.min_sync_interval_seconds,
+        autoRecallAvailable:
+          raw.features.autoRecallAvailable ??
+          raw.features.auto_recall_available ??
+          false,
+        autoCaptureAvailable:
+          raw.features.autoCaptureAvailable ??
+          raw.features.auto_capture_available ??
+          false,
+        minSyncIntervalSeconds:
+          raw.features.minSyncIntervalSeconds ??
+          raw.features.min_sync_interval_seconds ??
+          60,
       },
     };
   }

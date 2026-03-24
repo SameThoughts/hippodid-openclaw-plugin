@@ -34,6 +34,19 @@ Restart the gateway:
 openclaw gateway restart
 ```
 
+## Local Dev Install
+
+You can test the plugin locally without publishing to npm:
+
+```bash
+npm run build
+openclaw plugins install --link .
+openclaw gateway restart
+openclaw plugins info hippodid
+```
+
+That links OpenClaw directly to this working tree, so rebuilding `dist/` updates what the gateway loads.
+
 ## How It Works
 
 ```
@@ -50,15 +63,30 @@ The plugin runs as a **non-slot plugin** — it doesn't replace your existing me
 Already have memory files from previous sessions?
 
 ```bash
-openclaw run hippodid:import --workspace ~/.openclaw/workspace
+/hippodid import ~/.openclaw/workspace
 ```
 
 This uploads all `MEMORY.md` + `memory/*.md` files to your HippoDid character in one pass.
 
-## CLI Commands
+## Commands
 
-| Command | Description |
-|---------|-------------|
+HippoDid exposes two command surfaces:
+
+1. Chat commands handled by OpenClaw's command router:
+   - `/hippodid status`
+   - `/hippodid sync`
+   - `/hippodid import [workspace-path]`
+2. Agent/tool calls available inside the runtime:
+   - `hippodid:status`
+   - `hippodid:sync`
+   - `hippodid:import`
+
+Important: `openclaw agent --message "/hippodid status"` does **not** go through OpenClaw's slash-command router. That path sends the text straight to the agent, so `/hippodid ...` may be interpreted as ordinary user text instead of a plugin command. Use a real OpenClaw chat/channel surface for slash commands, or use the tool forms above for direct agent runs.
+
+## Tool Names
+
+| Tool | Description |
+|------|-------------|
 | `hippodid:status` | Show tier, sync status, watched paths |
 | `hippodid:sync` | Trigger immediate sync of all watched files |
 | `hippodid:import` | Import existing workspace memory |
@@ -102,7 +130,7 @@ This uploads all `MEMORY.md` + `memory/*.md` files to your HippoDid character in
 | `apiKey` | string | *required* | HippoDid API key (`hd_sk_...`) |
 | `characterId` | string | *required* | Target character ID |
 | `baseUrl` | string | `https://api.hippodid.com` | API endpoint |
-| `syncIntervalSeconds` | number | `300` | Debounce interval for file sync (min: 60s) |
+| `syncIntervalSeconds` | number | `300` | Debounce interval for file sync. The server enforces a tier-based minimum. |
 | `autoRecall` | boolean | `false` | Inject relevant memories before each turn (paid tier) |
 | `autoCapture` | boolean | `false` | Extract and store facts after each turn (paid tier) |
 | `additionalPaths` | array | `[]` | Extra files/directories to watch |
@@ -120,6 +148,8 @@ This uploads all `MEMORY.md` + `memory/*.md` files to your HippoDid character in
 - **Auto-Capture**: Facts automatically extracted from conversations via AUDN pipeline
 - Lower sync interval minimums
 
+If the server reports `autoRecallAvailable` or `autoCaptureAvailable`, the plugin enables those hooks automatically when the matching config flag is `true`.
+
 ## Workspace Auto-Detection
 
 The plugin automatically finds your memory files by searching:
@@ -135,6 +165,12 @@ Add `additionalPaths` in config to watch extra files or directories.
 - OpenClaw 2026.1.x+
 - Node.js 22+
 - HippoDid account (free at hippodid.dev)
+
+## Notes
+
+- The plugin ships compiled output from `dist/` and reads its displayed version from `package.json` at runtime.
+- Current HippoDid servers accept `Authorization: Bearer <apiKey>`. The plugin also sends the legacy `X-Api-Key` header for compatibility.
+- File sync has been verified locally against a linked OpenClaw install, including watcher-driven sync and cloud status updates.
 
 ## License
 

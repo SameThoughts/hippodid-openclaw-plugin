@@ -74,7 +74,7 @@ export function createTierManager(
     shouldHydrateOnStart(autoRecallEnabled: boolean): boolean {
       const isFree = !isPaidTier(currentTier);
       if (isFree) return true;
-      return !autoRecallEnabled;
+      return !this.shouldMountAutoRecall(autoRecallEnabled);
     },
 
     getEffectiveSyncInterval(configInterval: number): number {

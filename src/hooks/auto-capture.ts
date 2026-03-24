@@ -7,37 +7,40 @@ export function createAutoCaptureHook(
   logger: { info(msg: string): void; warn(msg: string): void },
 ): (api: any) => void {
   return (api: any) => {
-    api.registerHook(
-      'agent_end',
-      async (ctx: any) => {
-        try {
-          const user = ctx?.userMessage ?? ctx?.prompt ?? ctx?.input ?? '';
-          const assistant =
-            ctx?.assistantMessage ?? ctx?.response ?? ctx?.output ?? '';
-          if (!user && !assistant) return;
+    api.on('agent_end', async (ctx: any) => {
+      try {
+        const user =
+          ctx?.userMessage ??
+          ctx?.message ??
+          ctx?.prompt ??
+          ctx?.input ??
+          ctx?.finalUserMessage ??
+          '';
+        const assistant =
+          ctx?.assistantMessage ??
+          ctx?.response ??
+          ctx?.output ??
+          ctx?.finalResponse ??
+          '';
+        if (!user && !assistant) return;
 
-          const content = [
-            user ? `User: ${user}` : '',
-            assistant ? `Assistant: ${assistant}` : '',
-          ]
-            .filter(Boolean)
-            .join('\n');
+        const content = [
+          user ? `User: ${user}` : '',
+          assistant ? `Assistant: ${assistant}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n');
 
-          const result = await client.addMemory(config.characterId, content);
-          if (result.ok) {
-            logger.info('hippodid: captured conversation turn');
-          }
-        } catch (e) {
-          logger.warn(
-            `hippodid: capture error: ${e instanceof Error ? e.message : String(e)}`,
-          );
+        const result = await client.addMemory(config.characterId, content);
+        if (result.ok) {
+          logger.info('hippodid: captured conversation turn');
         }
-      },
-      {
-        name: 'hippodid.agent-end',
-        description: 'Capture conversation to HippoDid after agent responds',
-      },
-    );
+      } catch (e) {
+        logger.warn(
+          `hippodid: capture error: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      }
+    });
 
     api.registerTool({
       name: 'hippodid:remember',

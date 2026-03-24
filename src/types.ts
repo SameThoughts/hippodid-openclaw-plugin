@@ -59,9 +59,12 @@ export interface TierInfo {
 export interface TierApiResponse {
   tier: string;
   features: {
-    auto_recall_available: boolean;
-    auto_capture_available: boolean;
-    min_sync_interval_seconds: number;
+    auto_recall_available?: boolean;
+    auto_capture_available?: boolean;
+    min_sync_interval_seconds?: number;
+    autoRecallAvailable?: boolean;
+    autoCaptureAvailable?: boolean;
+    minSyncIntervalSeconds?: number;
   };
 }
 
