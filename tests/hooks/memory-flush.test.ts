@@ -14,14 +14,23 @@ function mockFileSync(): FileSync {
 const logger = { info: vi.fn(), warn: vi.fn() };
 
 describe('MemoryFlushHook', () => {
-  it('logs ready message without calling api.on', () => {
+  it('registers a compaction flush handler', async () => {
     const fileSync = mockFileSync();
-    const api = { registerTool: vi.fn() };
+    const api = { on: vi.fn() };
     const register = createMemoryFlushHook(fileSync, logger);
     register(api);
 
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('memory flush handler ready'),
+    expect(api.on).toHaveBeenCalledWith(
+      'before_compaction',
+      expect.any(Function),
     );
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.stringContaining('memory flush handler registered'),
+    );
+
+    const hookFn = api.on.mock.calls[0][1];
+    await hookFn();
+
+    expect(fileSync.flushNow).toHaveBeenCalled();
   });
 });

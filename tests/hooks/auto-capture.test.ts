@@ -30,16 +30,15 @@ const config: PluginConfig = {
 const logger = { info: vi.fn(), warn: vi.fn() };
 
 describe('AutoCaptureHook', () => {
-  it('registers both a registerHook and a registerTool', () => {
+  it('registers both an event handler and a registerTool', () => {
     const client = mockClient();
-    const api = { registerHook: vi.fn(), registerTool: vi.fn() };
+    const api = { on: vi.fn(), registerTool: vi.fn() };
     const register = createAutoCaptureHook(client, config, logger);
     register(api);
 
-    expect(api.registerHook).toHaveBeenCalledWith(
+    expect(api.on).toHaveBeenCalledWith(
       'agent_end',
       expect.any(Function),
-      expect.objectContaining({ name: 'hippodid.agent-end' }),
     );
     expect(api.registerTool).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'hippodid:remember' }),
@@ -48,11 +47,11 @@ describe('AutoCaptureHook', () => {
 
   it('lifecycle hook captures user + assistant exchange', async () => {
     const client = mockClient();
-    const api = { registerHook: vi.fn(), registerTool: vi.fn() };
+    const api = { on: vi.fn(), registerTool: vi.fn() };
     const register = createAutoCaptureHook(client, config, logger);
     register(api);
 
-    const hookFn = api.registerHook.mock.calls[0][1];
+    const hookFn = api.on.mock.calls[0][1];
     await hookFn({
       userMessage: 'What is TypeScript?',
       assistantMessage: 'A typed superset of JavaScript.',
@@ -66,7 +65,7 @@ describe('AutoCaptureHook', () => {
 
   it('remember tool stores content', async () => {
     const client = mockClient();
-    const api = { registerHook: vi.fn(), registerTool: vi.fn() };
+    const api = { on: vi.fn(), registerTool: vi.fn() };
     const register = createAutoCaptureHook(client, config, logger);
     register(api);
 
@@ -79,7 +78,7 @@ describe('AutoCaptureHook', () => {
 
   it('remember tool rejects empty content', async () => {
     const client = mockClient();
-    const api = { registerHook: vi.fn(), registerTool: vi.fn() };
+    const api = { on: vi.fn(), registerTool: vi.fn() };
     const register = createAutoCaptureHook(client, config, logger);
     register(api);
 

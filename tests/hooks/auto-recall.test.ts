@@ -33,16 +33,15 @@ const config: PluginConfig = {
 const logger = { info: vi.fn(), warn: vi.fn() };
 
 describe('AutoRecallHook', () => {
-  it('registers both a registerHook and a registerTool', () => {
+  it('registers both an event handler and a registerTool', () => {
     const client = mockClient();
-    const api = { registerHook: vi.fn(), registerTool: vi.fn() };
+    const api = { on: vi.fn(), registerTool: vi.fn() };
     const register = createAutoRecallHook(client, config, logger);
     register(api);
 
-    expect(api.registerHook).toHaveBeenCalledWith(
+    expect(api.on).toHaveBeenCalledWith(
       'before_agent_start',
       expect.any(Function),
-      expect.objectContaining({ name: 'hippodid.before-agent-start' }),
     );
     expect(api.registerTool).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'hippodid:recall' }),
@@ -51,23 +50,25 @@ describe('AutoRecallHook', () => {
 
   it('lifecycle hook searches memories and prepends context', async () => {
     const client = mockClient();
-    const api = { registerHook: vi.fn(), registerTool: vi.fn() };
+    const api = { on: vi.fn(), registerTool: vi.fn() };
     const register = createAutoRecallHook(client, config, logger);
     register(api);
 
-    const hookFn = api.registerHook.mock.calls[0][1];
-    const ctx = { prompt: 'What are my preferences?', prependContext: vi.fn() };
-    await hookFn(ctx);
+    const hookFn = api.on.mock.calls[0][1];
+    const ctx = { prompt: 'What are my preferences?' };
+    const result = await hookFn(ctx);
 
     expect(client.searchMemories).toHaveBeenCalledWith('char-1', 'What are my preferences?');
-    expect(ctx.prependContext).toHaveBeenCalledWith(
-      expect.stringContaining('Prefers tabs'),
+    expect(result).toEqual(
+      expect.objectContaining({
+        prependContext: expect.stringContaining('Prefers tabs'),
+      }),
     );
   });
 
   it('recall tool returns memory content', async () => {
     const client = mockClient();
-    const api = { registerHook: vi.fn(), registerTool: vi.fn() };
+    const api = { on: vi.fn(), registerTool: vi.fn() };
     const register = createAutoRecallHook(client, config, logger);
     register(api);
 
@@ -85,7 +86,7 @@ describe('AutoRecallHook', () => {
       error: { status: 500, message: 'Server error', retryable: true },
     }));
 
-    const api = { registerHook: vi.fn(), registerTool: vi.fn() };
+    const api = { on: vi.fn(), registerTool: vi.fn() };
     const register = createAutoRecallHook(client, config, logger);
     register(api);
 
