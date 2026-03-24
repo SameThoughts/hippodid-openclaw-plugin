@@ -7,6 +7,7 @@ export function createAutoRecallHook(
   logger: { info(msg: string): void; warn(msg: string): void },
 ): (api: any) => void {
   return (api: any) => {
+    // Lifecycle hook: inject memories before agent responds
     api.registerHook(
       'before_agent_start',
       async (ctx: any) => {
@@ -29,6 +30,30 @@ export function createAutoRecallHook(
       },
       { name: 'hippodid.before-agent-start', description: 'Inject HippoDid memories before agent responds' },
     );
-    logger.info('hippodid: auto-recall hook registered (before_agent_start)');
+
+    // Explicit tool: agents can call hippodid:recall directly
+    api.registerTool({
+      name: 'hippodid:recall',
+      description: 'Search HippoDid character memory and return relevant context. Call this at the start of a task to recall relevant memories.',
+      args: [
+        {
+          name: 'query',
+          description: 'What to search for in memory',
+          required: true,
+        },
+      ],
+      execute: async (args: Record<string, string>) => {
+        const query = args['query'] ?? '';
+        const result = await client.searchMemories(config.characterId, query);
+        if (result.ok && result.value.length > 0) {
+          logger.info(`hippodid: recalled ${result.value.length} memories for query: ${query}`);
+          return result.value.map((m) => m.content).join('\n\n');
+        } else {
+          return 'No memories found.';
+        }
+      },
+    });
+
+    logger.info('hippodid: auto-recall hook + hippodid:recall tool registered');
   };
 }
