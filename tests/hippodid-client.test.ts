@@ -106,7 +106,7 @@ describe('HippoDidClient', () => {
 
       const callArgs = fetchMock.mock.calls[0];
       expect(callArgs[0]).toContain('/v1/tier?characterId=char-1');
-      expect(callArgs[1].headers['X-Api-Key']).toBe(API_KEY);
+      expect(callArgs[1].headers['Authorization']).toBe(`Bearer ${API_KEY}`);
     });
   });
 

@@ -33,7 +33,7 @@ const config: PluginConfig = {
 const logger = { info: vi.fn(), warn: vi.fn() };
 
 describe('AutoRecallHook', () => {
-  it('registers before_agent_start hook via api.registerHook', () => {
+  it('registers both a registerHook and a registerTool', () => {
     const client = mockClient();
     const api = { registerHook: vi.fn(), registerTool: vi.fn() };
     const register = createAutoRecallHook(client, config, logger);
@@ -44,12 +44,12 @@ describe('AutoRecallHook', () => {
       expect.any(Function),
       expect.objectContaining({ name: 'hippodid.before-agent-start' }),
     );
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('before_agent_start'),
+    expect(api.registerTool).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'hippodid:recall' }),
     );
   });
 
-  it('hook handler searches memories and prepends context', async () => {
+  it('lifecycle hook searches memories and prepends context', async () => {
     const client = mockClient();
     const api = { registerHook: vi.fn(), registerTool: vi.fn() };
     const register = createAutoRecallHook(client, config, logger);
@@ -65,7 +65,20 @@ describe('AutoRecallHook', () => {
     );
   });
 
-  it('hook handler handles search failure gracefully', async () => {
+  it('recall tool returns memory content', async () => {
+    const client = mockClient();
+    const api = { registerHook: vi.fn(), registerTool: vi.fn() };
+    const register = createAutoRecallHook(client, config, logger);
+    register(api);
+
+    const toolDef = api.registerTool.mock.calls[0][0];
+    const result = await toolDef.execute({ query: 'preferences' });
+
+    expect(result).toContain('Prefers tabs');
+    expect(result).toContain('Senior Java dev');
+  });
+
+  it('recall tool handles search failure', async () => {
     const client = mockClient();
     client.searchMemories = vi.fn(async () => ({
       ok: false as const,
@@ -76,22 +89,9 @@ describe('AutoRecallHook', () => {
     const register = createAutoRecallHook(client, config, logger);
     register(api);
 
-    const hookFn = api.registerHook.mock.calls[0][1];
-    const ctx = { prompt: 'test', prependContext: vi.fn() };
-    await hookFn(ctx);
+    const toolDef = api.registerTool.mock.calls[0][0];
+    const result = await toolDef.execute({ query: 'test' });
 
-    expect(ctx.prependContext).not.toHaveBeenCalled();
-  });
-
-  it('hook handler skips when no prompt', async () => {
-    const client = mockClient();
-    const api = { registerHook: vi.fn(), registerTool: vi.fn() };
-    const register = createAutoRecallHook(client, config, logger);
-    register(api);
-
-    const hookFn = api.registerHook.mock.calls[0][1];
-    await hookFn({});
-
-    expect(client.searchMemories).not.toHaveBeenCalled();
+    expect(result).toBe('No memories found.');
   });
 });

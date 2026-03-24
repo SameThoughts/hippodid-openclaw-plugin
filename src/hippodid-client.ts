@@ -54,7 +54,7 @@ export function createClient(apiKey: string, baseUrl: string): HippoDidClient {
 
   function headers(): Record<string, string> {
     return {
-      'X-Api-Key': apiKey,
+      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     };
   }

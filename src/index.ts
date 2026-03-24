@@ -152,9 +152,10 @@ function registerCommands(
   tierManager: TierManager,
   logger: { info(msg: string): void; warn(msg: string): void },
 ): void {
-  api.registerTool('hippodid:status', {
+  api.registerTool({
+    name: 'hippodid:status',
     description: 'Show HippoDid tier, sync status, and watched paths',
-    handler: async () => {
+    execute: async () => {
       const tier = tierManager.getCurrentTier();
       const statusResult = await client.getSyncStatus(config.characterId);
 
@@ -183,9 +184,10 @@ function registerCommands(
     },
   });
 
-  api.registerTool('hippodid:sync', {
+  api.registerTool({
+    name: 'hippodid:sync',
     description: 'Trigger immediate sync of all watched files',
-    handler: async () => {
+    execute: async () => {
       logger.info('hippodid: manual sync triggered...');
       const { synced, changed } = await fileSync.flushNow();
       logger.info(
@@ -194,7 +196,8 @@ function registerCommands(
     },
   });
 
-  api.registerTool('hippodid:import', {
+  api.registerTool({
+    name: 'hippodid:import',
     description: 'Import existing workspace memory into HippoDid character',
     args: [
       {
@@ -203,7 +206,7 @@ function registerCommands(
         required: false,
       },
     ],
-    handler: async (args: Record<string, string>) => {
+    execute: async (args: Record<string, string>) => {
       const { readdir } = await import('node:fs/promises');
       const { join, extname } = await import('node:path');
       const { createHash } = await import('node:crypto');
