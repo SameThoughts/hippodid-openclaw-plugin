@@ -17,7 +17,7 @@ export default {
 
   register(api: any): void {
     try {
-      const config = resolveConfig(api.config ?? {});
+      const config = resolveConfig(api.pluginConfig ?? {});
       const logger = api.logger ?? {
         info: (msg: string) => console.log(msg),
         warn: (msg: string) => console.warn(msg),
