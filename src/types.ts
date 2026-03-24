@@ -127,32 +127,7 @@ export interface FileTrackingEntry {
   lastSyncedAt: Date;
 }
 
-// --- OpenClaw Plugin API (local type, matches openclaw/plugin-sdk/core) ---
-
-export interface OpenClawPluginAPI {
-  config: PluginConfig;
-  logger: {
-    info(message: string): void;
-    warn(message: string): void;
-    error(message: string): void;
-  };
-  on(event: string, handler: (...args: any[]) => void | Promise<void>): void;
-  context: {
-    prepend(content: string): void;
-  };
-  commands: {
-    register(name: string, options: CommandOptions): void;
-  };
-}
-
-export interface CommandOptions {
-  description: string;
-  args?: CommandArg[];
-  handler: (args: Record<string, string>) => void | Promise<void>;
-}
-
-export interface CommandArg {
-  name: string;
-  description: string;
-  required?: boolean;
-}
+// OpenClaw Plugin API — typed as `any` at boundaries.
+// The real type comes from openclaw/plugin-sdk/core at runtime.
+// Methods used: api.registerTool(), api.logger, api.config
+export type OpenClawPluginAPI = any;

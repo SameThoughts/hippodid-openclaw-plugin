@@ -17,7 +17,7 @@ export default {
 
   register(api: any): void {
     try {
-      const config = resolveConfig(api.config);
+      const config = resolveConfig(api.config ?? {});
       const logger = api.logger ?? {
         info: (msg: string) => console.log(msg),
         warn: (msg: string) => console.warn(msg),
@@ -122,9 +122,20 @@ export default {
 };
 
 function resolveConfig(raw: any): PluginConfig {
+  if (!raw || typeof raw !== 'object') {
+    return {
+      apiKey: '',
+      characterId: '',
+      baseUrl: 'https://api.hippodid.com',
+      syncIntervalSeconds: 300,
+      autoRecall: false,
+      autoCapture: false,
+      additionalPaths: [],
+    };
+  }
   return {
-    apiKey: raw.apiKey,
-    characterId: raw.characterId,
+    apiKey: raw.apiKey ?? '',
+    characterId: raw.characterId ?? '',
     baseUrl: raw.baseUrl ?? 'https://api.hippodid.com',
     syncIntervalSeconds: raw.syncIntervalSeconds ?? 300,
     autoRecall: raw.autoRecall ?? false,
