@@ -17,7 +17,7 @@ const VERSION =
 let hasInitialized = false;
 
 export default {
-  id: 'hippodid',
+  id: 'hippodid-openclaw-plugin',
 
   register(api: any): void {
     try {
