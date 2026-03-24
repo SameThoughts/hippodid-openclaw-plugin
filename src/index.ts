@@ -24,10 +24,18 @@ export default {
         error: (msg: string) => console.error(msg),
       };
 
-      const client = createClient(config.apiKey, config.baseUrl);
+      const apiKey = config?.apiKey?.trim() ?? '';
+      const characterId = config?.characterId?.trim() ?? '';
+
+      if (!apiKey || !characterId) {
+        logger.warn('HippoDid: apiKey and characterId required — configure in openclaw.json');
+        return;
+      }
+
+      const client = createClient(apiKey, config.baseUrl);
       const tierManager = createTierManager(
         client,
-        config.characterId,
+        characterId,
         logger,
       );
       const watchPaths = resolveWatchPaths(config);
@@ -43,7 +51,7 @@ export default {
         effectiveSyncInterval,
       );
 
-      logger.info(`HippoDid loaded — character: ${config.characterId}`);
+      logger.info(`HippoDid loaded — character: ${characterId}`);
 
       const registerMemoryFlush = createMemoryFlushHook(fileSync, logger);
       registerMemoryFlush(api);
