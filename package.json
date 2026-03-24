@@ -25,7 +25,8 @@
   "openclaw": {
     "extensions": [
       "./dist/index.js"
-    ]
+    ],
+    "id": "hippodid-openclaw-plugin"
   },
   "files": [
     "dist",

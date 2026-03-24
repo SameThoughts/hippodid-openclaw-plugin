@@ -1,5 +1,5 @@
 {
-  "id": "hippodid",
+  "id": "hippodid-openclaw-plugin",
   "name": "HippoDid — Cloud Character Memory",
   "description": "Cloud sync for MEMORY.md with structured character memory. Survives context compaction.",
   "skills": ["./skills"],
