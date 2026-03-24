@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createAutoRecallHook } from '../../src/hooks/auto-recall.js';
 import type { HippoDidClient } from '../../src/hippodid-client.js';
-import type { PluginConfig, OpenClawPluginAPI } from '../../src/types.js';
+import type { PluginConfig } from '../../src/types.js';
 
 function mockClient(): HippoDidClient {
   return {
@@ -20,21 +20,6 @@ function mockClient(): HippoDidClient {
   };
 }
 
-function mockApi(): OpenClawPluginAPI & { _hooks: Record<string, Function[]> } {
-  const hooks: Record<string, Function[]> = {};
-  return {
-    _hooks: hooks,
-    config: {} as any,
-    logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-    on: (event: string, handler: Function) => {
-      if (!hooks[event]) hooks[event] = [];
-      hooks[event].push(handler);
-    },
-    context: { prepend: vi.fn() },
-    commands: { register: vi.fn() },
-  };
-}
-
 const config: PluginConfig = {
   apiKey: 'hd_sk_test',
   characterId: 'char-1',
@@ -48,78 +33,52 @@ const config: PluginConfig = {
 const logger = { info: vi.fn(), warn: vi.fn() };
 
 describe('AutoRecallHook', () => {
-  it('registers before_agent_start hook', () => {
+  it('registers hippodid:recall tool via api.registerTool', () => {
     const client = mockClient();
-    const api = mockApi();
+    const api = { registerTool: vi.fn() };
     const register = createAutoRecallHook(client, config, logger);
     register(api);
 
-    expect(api._hooks['before_agent_start']).toBeDefined();
-  });
-
-  it('injects memories as context block', async () => {
-    const client = mockClient();
-    const api = mockApi();
-    const register = createAutoRecallHook(client, config, logger);
-    register(api);
-
-    await api._hooks['before_agent_start'][0]({ message: 'What are my preferences?' });
-
-    expect(client.searchMemories).toHaveBeenCalledWith('char-1', 'What are my preferences?', 5);
-    expect(api.context.prepend).toHaveBeenCalledWith(
-      expect.stringContaining('<hippodid-memories>'),
+    expect(api.registerTool).toHaveBeenCalledWith(
+      'hippodid:recall',
+      expect.objectContaining({ description: expect.any(String) }),
     );
-    expect(api.context.prepend).toHaveBeenCalledWith(
-      expect.stringContaining('Prefers tabs'),
-    );
-  });
-
-  it('skips injection when no memories found', async () => {
-    const client = mockClient();
-    client.searchMemories = vi.fn(async () => ({
-      ok: true as const,
-      value: [],
-    }));
-
-    const api = mockApi();
-    const register = createAutoRecallHook(client, config, logger);
-    register(api);
-
-    await api._hooks['before_agent_start'][0]({ message: 'hello' });
-
-    expect(api.context.prepend).not.toHaveBeenCalled();
     expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('no relevant memories'),
+      expect.stringContaining('hippodid:recall'),
     );
   });
 
-  it('handles search failure gracefully', async () => {
+  it('recall tool handler returns memory content', async () => {
+    const client = mockClient();
+    const api = { registerTool: vi.fn() };
+    const register = createAutoRecallHook(client, config, logger);
+    register(api);
+
+    const toolDef = api.registerTool.mock.calls[0][1];
+    const result = await toolDef.handler({ query: 'preferences' });
+
+    expect(client.searchMemories).toHaveBeenCalledWith('char-1', 'preferences');
+    expect(result).toContain('Prefers tabs');
+    expect(result).toContain('Senior Java dev');
+  });
+
+  it('recall tool handler handles search failure', async () => {
     const client = mockClient();
     client.searchMemories = vi.fn(async () => ({
       ok: false as const,
       error: { status: 500, message: 'Server error', retryable: true },
     }));
 
-    const api = mockApi();
+    const api = { registerTool: vi.fn() };
     const register = createAutoRecallHook(client, config, logger);
     register(api);
 
-    await api._hooks['before_agent_start'][0]({ message: 'test' });
+    const toolDef = api.registerTool.mock.calls[0][1];
+    const result = await toolDef.handler({ query: 'test' });
 
-    expect(api.context.prepend).not.toHaveBeenCalled();
+    expect(result).toBe('No memories found.');
     expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('recall search failed'),
+      expect.stringContaining('recall failed'),
     );
-  });
-
-  it('extracts message from string arg', async () => {
-    const client = mockClient();
-    const api = mockApi();
-    const register = createAutoRecallHook(client, config, logger);
-    register(api);
-
-    await api._hooks['before_agent_start'][0]('plain text message');
-
-    expect(client.searchMemories).toHaveBeenCalledWith('char-1', 'plain text message', 5);
   });
 });
