@@ -10,6 +10,16 @@ HippoDid syncs your memory files to cloud **before** compaction destroys them. N
 
 ## Install
 
+From ClawHub (`hippodid/hippodid-openclaw-plugin` on [clawhub.ai](https://clawhub.ai)):
+
+```bash
+openclaw plugins install hippodid-openclaw-plugin
+# or
+openclaw plugins install clawhub:hippodid/hippodid-openclaw-plugin
+```
+
+Or from npm:
+
 ```bash
 openclaw plugins install @hippodid/openclaw-plugin
 ```
