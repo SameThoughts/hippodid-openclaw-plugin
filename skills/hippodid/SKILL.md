@@ -9,10 +9,10 @@ HippoDid stores memories in the cloud so they survive context compaction and per
 
 ## When to use this skill
 
-- User says "remember", "save this", "don't forget", "note that" → call hippodid:remember
-- User asks "what do you know about me", "do you remember", "recall" → call hippodid:recall
-- You need context from previous sessions at the start of a task → call hippodid:recall
-- User wants to sync their memory files → call hippodid:sync
+- User says "remember", "save this", "don't forget", "note that" -> call hippodid:remember
+- User asks "what do you know about me", "do you remember", "recall" -> call hippodid:recall
+- You need context from previous sessions at the start of a task -> call hippodid:recall
+- User wants to sync their memory files -> call hippodid:sync
 
 ## Tools
 

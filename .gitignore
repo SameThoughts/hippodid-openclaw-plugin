@@ -27,3 +27,5 @@ yarn-error.log*
 /tmp/jiti/
 
 .idea/
+
+.npm-cache/

@@ -54,7 +54,8 @@ export function createClient(apiKey: string, baseUrl: string): HippoDidClient {
 
   function headers(): Record<string, string> {
     return {
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
+      'X-Api-Key': apiKey,
       'Content-Type': 'application/json',
     };
   }
@@ -191,8 +192,10 @@ export function createClient(apiKey: string, baseUrl: string): HippoDidClient {
         'POST',
         `/v1/characters/${encodeURIComponent(characterId)}/sync`,
         {
+          filePath: sourcePath,
           source_path: sourcePath,
           label,
+          fileContent: fileContent,
           file_content: fileContent,
           checksum,
         },

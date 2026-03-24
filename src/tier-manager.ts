@@ -52,9 +52,7 @@ export function createTierManager(
     },
 
     shouldMountFileSync(autoCaptureEnabled: boolean): boolean {
-      const isFree = !isPaidTier(currentTier);
-      if (isFree) return true;
-      return !autoCaptureEnabled;
+      return !this.shouldMountAutoCapture(autoCaptureEnabled);
     },
 
     shouldMountAutoRecall(autoRecallEnabled: boolean): boolean {

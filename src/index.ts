@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import type { PluginConfig } from './types.js';
 import { createClient, type HippoDidClient } from './hippodid-client.js';
@@ -10,39 +11,42 @@ import { createSessionHooks } from './hooks/session-lifecycle.js';
 import { createAutoRecallHook } from './hooks/auto-recall.js';
 import { createAutoCaptureHook } from './hooks/auto-capture.js';
 
-const VERSION = '1.0.0';
+const require = createRequire(import.meta.url);
+const VERSION =
+  ((require('../package.json') as { version?: string }).version) ?? '0.0.0-dev';
+let hasInitialized = false;
 
 export default {
   id: 'hippodid',
 
   register(api: any): void {
     try {
-      const config = resolveConfig(api.pluginConfig ?? {});
+      if (hasInitialized) {
+        return;
+      }
+
+      const config = resolveConfig(api.pluginConfig ?? api.config ?? {});
       const logger = api.logger ?? {
         info: (msg: string) => console.log(msg),
         warn: (msg: string) => console.warn(msg),
         error: (msg: string) => console.error(msg),
       };
 
-      const apiKey = config?.apiKey?.trim() ?? '';
-      const characterId = config?.characterId?.trim() ?? '';
-
+      const apiKey = config.apiKey.trim();
+      const characterId = config.characterId.trim();
       if (!apiKey || !characterId) {
-        logger.warn('HippoDid: apiKey and characterId required — configure in openclaw.json');
+        logger.warn(
+          'HippoDid: apiKey and characterId required — configure in openclaw.json',
+        );
         return;
       }
 
+      hasInitialized = true;
+
       const client = createClient(apiKey, config.baseUrl);
-      const tierManager = createTierManager(
-        client,
-        characterId,
-        logger,
-      );
+      const tierManager = createTierManager(client, characterId, logger);
       const watchPaths = resolveWatchPaths(config);
-      const effectiveSyncInterval = Math.max(
-        config.syncIntervalSeconds,
-        60,
-      );
+      const effectiveSyncInterval = Math.max(config.syncIntervalSeconds, 60);
       const fileSync = createFileSync(
         client,
         config,
@@ -133,6 +137,7 @@ function resolveConfig(raw: any): PluginConfig {
       additionalPaths: [],
     };
   }
+
   return {
     apiKey: raw.apiKey ?? '',
     characterId: raw.characterId ?? '',

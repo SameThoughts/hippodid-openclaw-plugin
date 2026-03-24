@@ -129,5 +129,5 @@ export interface FileTrackingEntry {
 
 // OpenClaw Plugin API — typed as `any` at boundaries.
 // The real type comes from openclaw/plugin-sdk/core at runtime.
-// Methods used: api.registerTool(), api.logger, api.config
+// Methods used: api.registerTool(), api.registerHook(), api.logger, api.pluginConfig
 export type OpenClawPluginAPI = any;

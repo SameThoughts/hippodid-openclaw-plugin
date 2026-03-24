@@ -7,7 +7,6 @@ export function createAutoRecallHook(
   logger: { info(msg: string): void; warn(msg: string): void },
 ): (api: any) => void {
   return (api: any) => {
-    // Lifecycle hook: inject memories before agent responds
     api.registerHook(
       'before_agent_start',
       async (ctx: any) => {
@@ -25,16 +24,21 @@ export function createAutoRecallHook(
             logger.info(`hippodid: recalled ${result.value.length} memories`);
           }
         } catch (e) {
-          logger.warn(`hippodid: recall error: ${e instanceof Error ? e.message : String(e)}`);
+          logger.warn(
+            `hippodid: recall error: ${e instanceof Error ? e.message : String(e)}`,
+          );
         }
       },
-      { name: 'hippodid.before-agent-start', description: 'Inject HippoDid memories before agent responds' },
+      {
+        name: 'hippodid.before-agent-start',
+        description: 'Inject HippoDid memories before agent responds',
+      },
     );
 
-    // Explicit tool: agents can call hippodid:recall directly
     api.registerTool({
       name: 'hippodid:recall',
-      description: 'Search HippoDid character memory and return relevant context. Call this at the start of a task to recall relevant memories.',
+      description:
+        'Search HippoDid character memory and return relevant context. Call this at the start of a task to recall relevant memories.',
       args: [
         {
           name: 'query',
@@ -46,11 +50,12 @@ export function createAutoRecallHook(
         const query = args['query'] ?? '';
         const result = await client.searchMemories(config.characterId, query);
         if (result.ok && result.value.length > 0) {
-          logger.info(`hippodid: recalled ${result.value.length} memories for query: ${query}`);
+          logger.info(
+            `hippodid: recalled ${result.value.length} memories for query: ${query}`,
+          );
           return result.value.map((m) => m.content).join('\n\n');
-        } else {
-          return 'No memories found.';
         }
+        return 'No memories found.';
       },
     });
 
