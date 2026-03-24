@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0 (2026-03-24)
+
+### Milestone
+
+- Promote HippoDid OpenClaw integration to the `1.1.0` milestone release
+
+### Fixes
+
+- Keep file sync enabled even when `autoCapture` is turned on
+- Preserve watcher-based cloud sync alongside paid-tier auto-capture
+- Align the hook test suite with the current `api.on(...)` OpenClaw event API
+
+### Notes
+
+- The published package name remains `@hippodid/openclaw-plugin` for upgrade continuity with previous releases.
+- OpenClaw may still show a non-fatal id-mismatch warning because the plugin manifest id is `hippodid` while the npm package name is `openclaw-plugin`.
+
 ## 1.0.9 (2026-03-24)
 
 ### Fixes
