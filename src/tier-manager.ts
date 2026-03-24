@@ -51,8 +51,8 @@ export function createTierManager(
       return currentTier;
     },
 
-    shouldMountFileSync(autoCaptureEnabled: boolean): boolean {
-      return !this.shouldMountAutoCapture(autoCaptureEnabled);
+    shouldMountFileSync(_autoCaptureEnabled: boolean): boolean {
+      return true;
     },
 
     shouldMountAutoRecall(autoRecallEnabled: boolean): boolean {

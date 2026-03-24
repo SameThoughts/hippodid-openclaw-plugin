@@ -83,11 +83,11 @@ describe('TierManager', () => {
       expect(tm.shouldMountFileSync(false)).toBe(true);
     });
 
-    it('returns false on paid tier when autoCapture is ON', async () => {
+    it('returns true on paid tier when autoCapture is ON', async () => {
       const tm = createTierManager(mockClient(PAID_TIER), 'char-1', logger);
       await tm.initialize();
 
-      expect(tm.shouldMountFileSync(true)).toBe(false);
+      expect(tm.shouldMountFileSync(true)).toBe(true);
     });
   });
 
