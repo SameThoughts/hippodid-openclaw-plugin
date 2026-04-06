@@ -1,6 +1,26 @@
+<p align="center">
+  <img src="docs/assets/hippodid-hero.png" alt="HippoDid OpenClaw Plugin — Persistent cloud memory for OpenClaw agents" width="780" />
+</p>
+
+<p align="center">
+  <strong>HippoDid OpenClaw Plugin</strong><br/>
+  Persistent cloud memory for OpenClaw. Survives context compaction.
+</p>
+
+---
+
 # HippoDid — Cloud Character Memory for OpenClaw
 
 > Your MEMORY.md survives context compaction. Zero-config cloud sync with structured character memory.
+
+## What is HippoDid?
+
+[HippoDid](https://hippodid.com) is persistent, portable memory infrastructure for AI agents. It stores structured memories in a cloud database and retrieves them across sessions, tools, and AI providers. This plugin connects OpenClaw to HippoDid — giving your OpenClaw agent the same memory that Claude Code, ChatGPT, Gemini, Codex, and Cursor can access.
+
+- **Cross-platform recall** — write a memory in OpenClaw, recall it in Claude Code (or vice versa)
+- **Survives compaction** — memories are in the cloud, not the context window
+- **Structured** — facts are categorized (preferences, skills, decisions) with salience scores and temporal decay
+- **Free tier** — 1 character, 100 memories, no credit card required
 
 ## The Problem
 
